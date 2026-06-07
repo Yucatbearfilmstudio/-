@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hant">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>台灣 Google 每日趨勢</title>
+
+  <style>
+
+    body {
+
+      margin: 0;
+
+      padding: 16px;
+
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+      background: #fff5f8;
+
+      color: #333;
+
+    }
+
+    .card {
+
+      max-width: 420px;
+
+      margin: auto;
+
+      background: #ffffff;
+
+      border-radius: 24px;
+
+      padding: 20px;
+
+      box-shadow: 0 10px 30px rgba(255, 105, 150, 0.18);
+
+      border: 1px solid #ffd6e5;
+
+    }
+
+    .title {
+
+      font-size: 22px;
+
+      font-weight: 800;
+
+      color: #ff4f8b;
+
+      margin-bottom: 6px;
+
+    }
+
+    .subtitle {
+
+      font-size: 13px;
+
+      color: #999;
+
+      margin-bottom: 18px;
+
+    }
+
+    .trend {
+
+      display: flex;
+
+      align-items: center;
+
+      gap: 12px;
+
+      padding: 12px 0;
+
+      border-bottom: 1px solid #ffe1ec;
+
+    }
+
+    .trend:last-child {
+
+      border-bottom: none;
+
+    }
+
+    .rank {
+
+      width: 34px;
+
+      height: 34px;
+
+      border-radius: 50%;
+
+      background: linear-gradient(135deg, #ff77a9, #ffb6d1);
+
+      color: white;
+
+      font-weight: 800;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      flex-shrink: 0;
+
+    }
+
+    .info {
+
+      flex: 1;
+
+      min-width: 0;
+
+    }
+
+    .keyword {
+
+      font-size: 16px;
+
+      font-weight: 700;
+
+      color: #333;
+
+      white-space: nowrap;
+
+      overflow: hidden;
+
+      text-overflow: ellipsis;
+
+    }
+
+    .traffic {
+
+      font-size: 12px;
+
+      color: #ff6f9f;
+
+      margin-top: 4px;
+
+    }
+
+    .footer {
+
+      margin-top: 16px;
+
+      font-size: 12px;
+
+      color: #aaa;
+
+      text-align: center;
+
+    }
+
+    .loading {
+
+      text-align: center;
+
+      padding: 30px 0;
+
+      color: #ff6f9f;
+
+      font-weight: 600;
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="card">
+
+    <div class="title">🇹🇼 台灣 Google 熱搜 Top 10</div>
+
+    <div class="subtitle">每 30 分鐘自動更新一次</div>
+
+    <div id="trendList" class="loading">載入中...</div>
+
+    <div class="footer" id="updateTime"></div>
+
+  </div>
+
+  <script>
+
+    async function loadTrends() {
+
+      const rssUrl =
+
+        "https://trends.google.com/trends/trendingsearches/daily/rss?geo=TW";
+
+      const apiUrl =
+
+        "https://api.rss2json.com/v1/api.json?rss_url=" +
+
+        encodeURIComponent(rssUrl);
+
+      const list = document.getElementById("trendList");
+
+      const updateTime = document.getElementById("updateTime");
+
+      try {
+
+        const response = await fetch(apiUrl);
+
+        const data = await response.json();
+
+        list.className = "";
+
+        list.innerHTML = "";
+
+        data.items.slice(0, 10).forEach((item, index) => {
+
+          const title = item.title || "未命名關鍵字";
+
+          const traffic =
+
+            item["ht:approx_traffic"] ||
+
+            item.approx_traffic ||
+
+            "搜尋量資料更新中";
+
+          const div = document.createElement("div");
+
+          div.className = "trend";
+
+          div.innerHTML = `
+
+            <div class="rank">${index + 1}</div>
+
+            <div class="info">
+
+              <div class="keyword">${title}</div>
+
+              <div class="traffic">搜尋量：約 ${traffic}</div>
+
+            </div>
+
+          `;
+
+          list.appendChild(div);
+
+        });
+
+        const now = new Date();
+
+        updateTime.textContent =
+
+          "最後更新：" +
+
+          now.toLocaleString("zh-TW", {
+
+            hour12: false
+
+          });
+
+      } catch (error) {
+
+        list.className = "loading";
+
+        list.innerHTML = "目前讀取失敗，請稍後再試";
+
+      }
+
+    }
+
+    loadTrends();
+
+    setInterval(loadTrends, 30 * 60 * 1000);
+
+  </script>
+
+</body>
+
+</html>
