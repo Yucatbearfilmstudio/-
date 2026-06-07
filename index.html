@@ -16,7 +16,7 @@
 
       margin: 0;
 
-      padding: 16px;
+      padding: 14px;
 
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
@@ -28,7 +28,7 @@
 
     .card {
 
-      max-width: 420px;
+      max-width: 430px;
 
       margin: auto;
 
@@ -62,7 +62,7 @@
 
       color: #999;
 
-      margin-bottom: 18px;
+      margin-bottom: 16px;
 
     }
 
@@ -154,17 +154,29 @@
 
       text-align: center;
 
+      line-height: 1.6;
+
     }
 
     .loading {
 
       text-align: center;
 
-      padding: 30px 0;
+      padding: 28px 0;
 
       color: #ff6f9f;
 
       font-weight: 600;
+
+    }
+
+    a {
+
+      color: #ff4f8b;
+
+      text-decoration: none;
+
+      font-weight: 700;
 
     }
 
@@ -178,7 +190,7 @@
 
     <div class="title">🇹🇼 台灣 Google 熱搜 Top 10</div>
 
-    <div class="subtitle">每 30 分鐘自動更新一次</div>
+    <div class="subtitle">每 30 分鐘自動更新一次｜適合 Notion 手機版</div>
 
     <div id="trendList" class="loading">載入中...</div>
 
@@ -188,85 +200,169 @@
 
   <script>
 
-    async function loadTrends() {
+    const rssUrl =
 
-      const rssUrl =
+      "https://trends.google.com/trends/trendingsearches/daily/rss?geo=TW";
 
-        "https://trends.google.com/trends/trendingsearches/daily/rss?geo=TW";
+    const apiList = [
 
-      const apiUrl =
+      "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl),
 
-        "https://api.rss2json.com/v1/api.json?rss_url=" +
+      "https://api.allorigins.win/raw?url=" + encodeURIComponent(rssUrl)
 
-        encodeURIComponent(rssUrl);
+    ];
+
+    const backupData = [
+
+      { title: "Google Trends 台灣熱搜", traffic: "即時資料更新中" },
+
+      { title: "請點下方官方連結查看", traffic: "Google 官方資料" },
+
+      { title: "台灣熱門搜尋", traffic: "更新中" },
+
+      { title: "即時熱門話題", traffic: "更新中" },
+
+      { title: "新聞熱門關鍵字", traffic: "更新中" },
+
+      { title: "娛樂熱門搜尋", traffic: "更新中" },
+
+      { title: "運動熱門搜尋", traffic: "更新中" },
+
+      { title: "社群討論趨勢", traffic: "更新中" },
+
+      { title: "今日關注議題", traffic: "更新中" },
+
+      { title: "更多請查看 Google Trends", traffic: "官方頁面" }
+
+    ];
+
+    function renderTrends(items, isBackup = false) {
 
       const list = document.getElementById("trendList");
 
       const updateTime = document.getElementById("updateTime");
 
-      try {
+      list.className = "";
 
-        const response = await fetch(apiUrl);
+      list.innerHTML = "";
 
-        const data = await response.json();
+      items.slice(0, 10).forEach((item, index) => {
 
-        list.className = "";
+        const title = item.title || "未命名關鍵字";
 
-        list.innerHTML = "";
+        const traffic =
 
-        data.items.slice(0, 10).forEach((item, index) => {
+          item["ht:approx_traffic"] ||
 
-          const title = item.title || "未命名關鍵字";
+          item.approx_traffic ||
 
-          const traffic =
+          item.traffic ||
 
-            item["ht:approx_traffic"] ||
+          "搜尋量資料更新中";
 
-            item.approx_traffic ||
+        const div = document.createElement("div");
 
-            "搜尋量資料更新中";
+        div.className = "trend";
 
-          const div = document.createElement("div");
+        div.innerHTML = `
 
-          div.className = "trend";
+          <div class="rank">${index + 1}</div>
 
-          div.innerHTML = `
+          <div class="info">
 
-            <div class="rank">${index + 1}</div>
+            <div class="keyword">${title}</div>
 
-            <div class="info">
+            <div class="traffic">搜尋量：約 ${traffic}</div>
 
-              <div class="keyword">${title}</div>
+          </div>
 
-              <div class="traffic">搜尋量：約 ${traffic}</div>
+        `;
 
-            </div>
+        list.appendChild(div);
 
-          `;
+      });
 
-          list.appendChild(div);
+      const now = new Date();
 
-        });
+      updateTime.innerHTML =
 
-        const now = new Date();
+        "最後更新：" +
 
-        updateTime.textContent =
+        now.toLocaleString("zh-TW", { hour12: false }) +
 
-          "最後更新：" +
+        "<br>" +
 
-          now.toLocaleString("zh-TW", {
+        (isBackup
 
-            hour12: false
+          ? '目前使用備用顯示｜<a target="_blank" href="https://trends.google.com.tw/trending?geo=TW&hl=zh-TW">查看 Google 官方熱搜</a>'
 
-          });
+          : '資料來源：Google Trends');
 
-      } catch (error) {
+    }
 
-        list.className = "loading";
+    async function loadTrends() {
 
-        list.innerHTML = "目前讀取失敗，請稍後再試";
+      for (const apiUrl of apiList) {
+
+        try {
+
+          const response = await fetch(apiUrl);
+
+          const text = await response.text();
+
+          let items = [];
+
+          if (apiUrl.includes("rss2json")) {
+
+            const data = JSON.parse(text);
+
+            if (data.items && data.items.length > 0) {
+
+              items = data.items;
+
+            }
+
+          } else {
+
+            const parser = new DOMParser();
+
+            const xml = parser.parseFromString(text, "text/xml");
+
+            const xmlItems = [...xml.querySelectorAll("item")];
+
+            items = xmlItems.map(item => ({
+
+              title: item.querySelector("title")?.textContent || "",
+
+              traffic:
+
+                item.querySelector("approx_traffic")?.textContent ||
+
+                item.querySelector("ht\\:approx_traffic")?.textContent ||
+
+                "搜尋量資料更新中"
+
+            }));
+
+          }
+
+          if (items.length > 0) {
+
+            renderTrends(items, false);
+
+            return;
+
+          }
+
+        } catch (error) {
+
+          console.log("來源讀取失敗，嘗試下一個來源");
+
+        }
 
       }
+
+      renderTrends(backupData, true);
 
     }
 
